@@ -1,0 +1,561 @@
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Custom Banner Admin</title>
+  <!-- Include Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Include jQuery (full version) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <style>
+    /* Global reset and styling */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f6;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 {
+      color: #2d7dd2;
+      margin-bottom: 15px;
+    }
+    /* Container for both sections */
+    .container {
+      display: flex;
+      height: calc(100vh - 40px);
+      margin: 20px auto;
+      max-width: 1200px;
+      overflow: hidden;
+    }
+    /* Left Section: Custom Banner Admin */
+    .admin-form {
+      flex: 0 0 30%;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    /* Vertical Divider */
+    .divider {
+      width: 2px;
+      background-color: #ccc;
+      margin: 0 20px;
+    }
+    /* Right Section: Existing Banners */
+    .existing-banners {
+      flex: 1;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      height: 100%;
+      overflow-y: auto;
+    }
+    /* Filter Buttons - Grey Themed Connected Bar */
+    .banner-filters {
+      display: inline-flex;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    .banner-filters button {
+      background-color: #f0f0f0;
+      border: none;
+      color: #333;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin: 0;
+    }
+    .banner-filters button:not(:last-child) {
+      border-right: 1px solid #ccc;
+    }
+    .banner-filters button:hover,
+    .banner-filters button.active {
+      background-color: #ddd;
+    }
+    /* Existing Banners List Styling */
+    .existing-banners ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .existing-banners li {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 10px;
+    }
+    .existing-banners li:last-child {
+      border-bottom: none;
+    }
+    /* Layout for each banner: preview on left, info on right */
+    .banner-item {
+      display: flex;
+      align-items: center;
+    }
+    .banner-preview {
+      flex: 0 0 120px;
+      margin-right: 10px;
+    }
+    .banner-info {
+      flex: 1;
+    }
+    .banner-details {
+      margin-bottom: 5px;
+    }
+    .banner-details a {
+      text-decoration: none;
+      color: #2d7dd2;
+      cursor: pointer;
+    }
+    .banner-details a:hover {
+      text-decoration: underline;
+    }
+    .banner-controls form {
+      display: inline;
+    }
+    .banner-controls button {
+      background-color: #d9534f;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .banner-controls button:hover {
+      background-color: #c9302c;
+    }
+    /* Form styling for admin form */
+    form p {
+      margin-bottom: 15px;
+    }
+    form label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    form input[type="text"],
+    form input[type="file"],
+    form input[type="datetime-local"],
+    form select,
+    form textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+    }
+    form input[type="checkbox"] {
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+    form .inline-field {
+      display: inline-flex;
+      align-items: center;
+    }
+    form button {
+      background-color: #2d7dd2;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #1c5aa8;
+    }
+    .time-fields {
+      display: none;
+    }
+    /* Thumbnail for banner preview */
+    .banner-thumb {
+      max-width: 100%;
+      max-height: 60px;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    /* Modal styling for image zoom */
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 100; 
+      padding-top: 60px; 
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.9); 
+    }
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90%;
+      max-height: 80%;
+    }
+    .modal-close {
+      position: absolute;
+      top: 30px;
+      right: 35px;
+      color: #f1f1f1;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .modal-close:hover,
+    .modal-close:focus {
+      color: #bbb;
+    }
+    /* Modal for editing banner details */
+    #editModal {
+      display: none; 
+      position: fixed;
+      z-index: 200;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.7);
+    }
+    #editModal .modal-content {
+      background: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      position: relative;
+    }
+    #editModal .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 28px;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .messages {
+      margin-bottom: 20px;
+    }
+    .alert {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .alert.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .alert.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    /* Responsive styles for smaller screens */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        height: auto;
+      }
+      .admin-form, .existing-banners {
+        flex: 1 0 100%;
+        margin-bottom: 20px;
+      }
+      .divider {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <div class="container">
+    <!-- Custom Banner Admin Section -->
+    <div class="admin-form">
+      <h1>Custom Banner Admin</h1>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <p>
+          {{ form.title.label_tag }}<br>
+          {{ form.title }}
+        </p>
+        <p>
+          {{ form.media.label_tag }}<br>
+          {{ form.media }}
+        </p>
+        <p>
+          {{ form.url.label_tag }}<br>
+          {{ form.url }}
+        </p>
+        <p class="inline-field">
+          {{ form.active }} {{ form.active.label_tag }}
+        </p>
+        <p class="inline-field">
+          {{ form.is_scheduled }} {{ form.is_scheduled.label_tag }}
+        </p>
+        <!-- Render the extra date and time fields -->
+        <div class="time-fields">
+          <p>
+            <label for="{{ form.start_date.id_for_label }}">Start Date:</label><br>
+            {{ form.start_date }}
+          </p>
+          <p>
+            <label for="{{ form.start_time_input.id_for_label }}">Start Time:</label><br>
+            {{ form.start_time_input }}
+          </p>
+          <p>
+            <label for="{{ form.end_date.id_for_label }}">End Date:</label><br>
+            {{ form.end_date }}
+          </p>
+          <p>
+            <label for="{{ form.end_time_input.id_for_label }}">End Time:</label><br>
+            {{ form.end_time_input }}
+          </p>
+        </div>
+        <button type="submit">Add Banner</button>
+      </form>
+    </div>
+
+    <!-- Vertical Divider -->
+    <div class="divider"></div>
+
+    <!-- Existing Banners Section -->
+    <div class="existing-banners">
+      <h2>Existing Banners</h2>
+      <!-- Filter Buttons Bar -->
+      <div class="banner-filters">
+        <button type="button" class="filter-btn active" data-filter="all">All Banners</button>
+        <button type="button" class="filter-btn" data-filter="default">Default Banners</button>
+        <button type="button" class="filter-btn" data-filter="scheduled">Scheduled Banners</button>
+      </div>
+      <ul>
+        {% for banner in banners %}
+          <li class="{% if banner.start_time and banner.end_time %}scheduled{% else %}default{% endif %}">
+            <div class="banner-item">
+                <div class="banner-preview">
+                    {% if banner.media %}
+                    {% if banner.media.url|lower|endswith:".mp4" %}
+                        <video width="100" controls>
+                        <source src="{{ banner.media.url }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                        </video>
+                    {% else %}
+                        <img src="{{ banner.media.url }}" alt="{{ banner.title }}" class="banner-thumb" data-large="{{ banner.media.url }}">
+                    {% endif %}
+                    {% else %}
+                    <p>{{ banner.title }}</p>
+                    {% endif %}
+                </div>
+              <div class="banner-info">
+                <div class="banner-details">
+                  <!-- Clicking the title opens the edit modal -->
+                  <strong>
+                    <a href="#" class="edit-banner"
+                       data-id="{{ banner.id }}"
+                       data-title="{{ banner.title }}"
+                       data-start_time="{% if banner.start_time %}{{ banner.start_time|date:'Y-m-d\\TH:i' }}{% endif %}"
+                       data-end_time="{% if banner.end_time %}{{ banner.end_time|date:'Y-m-d\\TH:i' }}{% endif %}">
+                      {{ banner.title }}
+                    </a>
+                  </strong><br>
+                  {% if banner.start_time and banner.end_time %}
+                    Scheduled: {{ banner.start_time }} to {{ banner.end_time }}
+                  {% else %}
+                    Default
+                  {% endif %}
+                </div>
+                <div class="banner-controls">
+                  <!-- Form to toggle the active state -->
+                  <form method="post" action="{% url 'update_banner_active' banner.id %}">
+                    {% csrf_token %}
+                    <input type="checkbox" name="active" id="active_{{ banner.id }}" {% if banner.active %}checked{% endif %} onchange="this.form.submit()">
+                    <label for="active_{{ banner.id }}">Active</label>
+                  </form>
+                  <!-- Form to delete the banner -->
+                  <form method="post" action="{% url 'delete_banner' banner.id %}" onsubmit="return confirm('Are you sure you want to delete this banner?');">
+                    {% csrf_token %}
+                    <button type="submit">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Modal for image zoom -->
+  <div id="imageModal" class="modal">
+    <span class="modal-close">&times;</span>
+    <img class="modal-content" id="modalImg">
+  </div>
+
+  <!-- Modal for editing banner details -->
+  <div id="editModal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Edit Banner</h2>
+      <form id="editBannerForm" method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="banner_id" id="edit_banner_id" value="">
+        <p>
+          <label for="edit_title">Title:</label><br>
+          <input type="text" name="title" id="edit_title" value="">
+        </p>
+        <p>
+          <label for="edit_start_date">Start Date:</label><br>
+          <input type="date" name="start_date" id="edit_start_date" value="">
+        </p>
+        <p>
+          <label for="edit_start_time">Start Time:</label><br>
+          <input type="text" name="start_time_input" id="edit_start_time" value="">
+        </p>
+        <p>
+          <label for="edit_end_date">End Date:</label><br>
+          <input type="date" name="end_date" id="edit_end_date" value="">
+        </p>
+        <p>
+          <label for="edit_end_time">End Time:</label><br>
+          <input type="text" name="end_time_input" id="edit_end_time" value="">
+        </p>
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.js"></script>
+
+  <!-- JavaScript for toggling time fields, filtering banners, modal functionality, and editing -->
+  <script>
+    $(document).ready(function(){
+      // Toggle time fields in admin form when "is_scheduled" checkbox changes
+      function toggleTimeFields(){
+        if($('#id_is_scheduled').is(':checked')){
+          $('.time-fields').slideDown();
+        } else {
+          $('.time-fields').slideUp();
+        }
+      }
+      toggleTimeFields();
+      $('#id_is_scheduled').change(function(){
+        toggleTimeFields();
+      });
+      
+      // Filter banner list based on clicked button
+      $('.filter-btn').click(function(){
+        $('.filter-btn').removeClass('active');
+        $(this).addClass('active');
+        var filter = $(this).data('filter');
+        if(filter === 'all'){
+          $('.existing-banners ul li').show();
+        } else {
+          $('.existing-banners ul li').hide();
+          $('.existing-banners ul li.' + filter).show();
+        }
+      });
+      
+      // Modal functionality for image zoom
+      $('.banner-thumb').click(function(){
+        var largeImgUrl = $(this).data('large');
+        $('#modalImg').attr('src', largeImgUrl);
+        $('#imageModal').fadeIn();
+      });
+      $('.modal-close, #imageModal').click(function(e){
+        if(e.target !== $('#modalImg')[0]){
+          $('#imageModal').fadeOut();
+        }
+      });
+      
+      // Edit banner: open modal with pre-filled data when title is clicked
+      $('.edit-banner').click(function(e){
+        e.preventDefault();
+        var bannerId = $(this).data('id');
+        var title = $(this).data('title');
+        var startTime = $(this).data('start_time') || "";
+        var endTime = $(this).data('end_time') || "";
+        
+        // Populate the modal form fields
+        $('#edit_banner_id').val(bannerId);
+        $('#edit_title').val(title);
+        // Assuming your view returns separate date and time values:
+        $('#edit_start_date').val(startTime.split(" ")[0]);  // date part
+        $('#edit_start_time').val(startTime.split(" ")[1] || "");  // time part
+        $('#edit_end_date').val(endTime.split(" ")[0]);        // date part
+        $('#edit_end_time').val(endTime.split(" ")[1] || "");    // time part
+        
+        // Update the form's action URL using the banner id
+        var urlTemplate = "{% url 'edit_banner' 0 %}";  // Replace 0 with actual id
+        var editUrl = urlTemplate.replace("0", bannerId);
+        $('#editBannerForm').attr('action', editUrl);
+        
+        // Show the edit modal
+        $('#editModal').fadeIn();
+      });
+      
+      // AJAX submission for the edit form
+      $('#editBannerForm').submit(function(e){
+        e.preventDefault();
+        var formData = $(this).serialize();
+        var actionUrl = $(this).attr('action');
+        $.ajax({
+          url: actionUrl,
+          type: 'POST',
+          data: formData,
+          success: function(data){
+            // Update banner title and data attributes on the admin list if needed.
+            var $editLink = $('a.edit-banner[data-id="' + data.banner_id + '"]');
+            $editLink.text(data.title);
+            $editLink.data('title', data.title);
+            // Concatenate date and time for data attributes, if needed.
+            $editLink.data('start_time', data.start_date + " " + data.start_time_input);
+            $editLink.data('end_time', data.end_date + " " + data.end_time_input);
+            
+            // Update the edit modal's fields with separate date/time values.
+            $('#edit_title').val(data.title);
+            $('#edit_start_date').val(data.start_date);
+            $('#edit_start_time').val(data.start_time_input);
+            $('#edit_end_date').val(data.end_date);
+            $('#edit_end_time').val(data.end_time_input);
+            
+            $('#editModal').fadeOut();
+            window.location.reload();
+          },
+          error: function(xhr, status, error){
+            alert("Error updating banner: " + error);
+          }
+        });
+      });
+      
+      // Close edit modal when clicking on close button or outside modal content
+      $('#editModal, #editModal .modal-close').click(function(e){
+        if(e.target === this || $(e.target).hasClass('modal-close')){
+          $('#editModal').fadeOut();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
