@@ -1,37 +1,33 @@
+from django.contrib.auth.models import User
 from django.db import models
-from django.utils import timezone
-
-class BannerGroup(models.Model):
-    name = models.CharField(max_length=100)
-    active = models.BooleanField(default=True)  # Represents group-level active status
-
-    def __str__(self):
-        return self.name
 
 class Banner(models.Model):
-    title = models.CharField(max_length=200, blank=True)
-    # image = models.ImageField(upload_to='banners/')
-    media = models.FileField(upload_to='banners/', blank=True, null=True)
-    group = models.ForeignKey(BannerGroup, on_delete=models.SET_NULL, null=True, blank=True)
-    # Optional time fields: if left empty, the banner is always shown.
-    start_time = models.DateTimeField(
-        null=True, blank=True, 
-        help_text="Optional: start time for scheduled banner display"
-    )
-    end_time = models.DateTimeField(
-        null=True, blank=True, 
-        help_text="Optional: end time for scheduled banner display"
-    )
-    active = models.BooleanField(default=True, help_text="Enable/disable banner")
-
-    def is_timed(self):
-        return self.start_time is not None and self.end_time is not None
-
-    def is_active(self):
-        now = timezone.now()
-        if self.is_timed():
-            return self.active and self.start_time <= now <= self.end_time
-        return self.active  # Always active if no time limits are provided
+    user = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True)
+    title = models.CharField(max_length=255)
+    active = models.BooleanField(default=True)
+    is_scheduled = models.BooleanField(default=False)
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return self.title or "Banner #{}".format(self.id)
+        return self.title
+
+class BannerMedia(models.Model):
+    banner = models.ForeignKey(Banner, related_name='media_files', on_delete=models.CASCADE)
+    media = models.FileField(upload_to='banners/')
+
+    def __str__(self):
+        return f"Media for {self.banner.title}"
+    
+
+
+# class Profile(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+#     organization_name = models.CharField(max_length=255)  # Add restaurant name
+#     logo = models.ImageField(upload_to='media/restaurant_logos/', null=True, blank=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     def __str__(self):
+#         return self.organization_name
+
