@@ -19,6 +19,14 @@ class BannerMedia(models.Model):
     def __str__(self):
         return f"Media for {self.banner.title}"
     
+    def is_image(self):
+        """Check if the uploaded media is an image."""
+        return self.media.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'))
+
+    def is_video(self):
+        """Check if the uploaded media is a video."""
+        return self.media.name.lower().endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv'))
+    
 
 
 # class Profile(models.Model):
