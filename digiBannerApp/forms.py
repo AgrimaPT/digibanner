@@ -1,7 +1,8 @@
 from django import forms
 from django.forms.widgets import DateInput, TimeInput
+from django.forms import ClearableFileInput
 from datetime import datetime
-from .models import Banner
+from .models import Banner, BannerMedia
 
 class BannerForm(forms.ModelForm):
     is_scheduled = forms.BooleanField(required=False, label="Scheduled Banner", initial=False)
@@ -31,15 +32,25 @@ class BannerForm(forms.ModelForm):
         input_formats=['%I:%M %p'],
         error_messages={'invalid': 'Please enter a valid time in hh:mm AM/PM format.'}
     )
+
+    media = forms.FileField(
+        required=False,
+        widget=forms.FileInput(),
+        label="Upload Media"
+    )
+
+
     
     class Meta:
         model = Banner
-        # Only include model fields (title, image, active).
-        fields = ['title', 'media', 'active']
+        fields = ['title','active']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['media'].widget.attrs.update({'accept': 'image/*,video/*'})
+        # self.fields['media'].widget.attrs.update({
+        #     'accept': 'image/*,video/*',
+        #     'multiple': True  # Allow multiple file uploads
+        # })
         # Prefill extra fields if editing an existing instance.
         if self.instance and self.instance.start_time:
             self.fields['start_date'].initial = self.instance.start_time.date()
@@ -77,6 +88,13 @@ class BannerForm(forms.ModelForm):
         instance = super().save(commit=False)
         instance.start_time = self.cleaned_data.get('start_time')
         instance.end_time = self.cleaned_data.get('end_time')
+        
         if commit:
-            instance.save()
+            instance.save()  # Save the Banner instance first
+            
+            # Save multiple media files
+            
+            for file in self.files.getlist('media'):  # Get all uploaded files
+                BannerMedia.objects.create(banner=instance, media=file)
+        
         return instance
