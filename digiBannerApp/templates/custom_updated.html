@@ -1,0 +1,1363 @@
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Banner Admin</title>
+  <!-- Include Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Include jQuery (full version) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css">
+  <style>
+    :root {
+      --primary: #3a7bd5;
+      --primary-light: #00d2ff;
+      --danger: #ff416c;
+      --danger-dark: #ff4b2b;
+      --success: #4CAF50;
+      --warning: #FFC107;
+      --dark: #2C3E50;
+      --light: #f8f9fa;
+      --shadow: 0 4px 6px rgba(0,0,0,0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right bottom, #f5f7fa 0%, #e4e8eb 100%);
+      color: var(--dark);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Navigation */
+    .navbar {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      box-shadow: var(--shadow);
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .nav-item {
+      color: white;
+      text-decoration: none;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: var(--transition);
+    }
+
+    .nav-item:hover {
+      color: #f4a261;
+      transform: translateY(-2px);
+    }
+
+    .logout-btn {
+      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+      color: white;
+      padding: 8px 15px;
+      border: none;
+      cursor: pointer;
+      border-radius: 50px;
+      font-weight: 600;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .logout-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 14px rgba(255,65,108,0.2);
+    }
+
+    /* Main Container */
+    .container {
+      display: flex;
+      min-height: calc(100vh - 120px);
+      margin: 0 auto;
+      max-width: 1200px;
+      gap: 20px;
+    }
+
+    /* Admin Form Section */
+    .admin-form {
+      flex: 0 0 35%;
+      padding: 25px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.05);
+      transition: var(--transition);
+      overflow-y: auto;
+    }
+
+    .admin-form:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.12);
+    }
+
+    /* Divider */
+    .divider {
+      width: 2px;
+      background: linear-gradient(to bottom, transparent, #ccc, transparent);
+      margin: 0 10px;
+    }
+
+    /* Existing Banners Section */
+    .existing-banners {
+      flex: 1;
+      padding: 25px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.05);
+      transition: var(--transition);
+      overflow-y: auto;
+    }
+
+    .existing-banners:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.12);
+    }
+
+    /* Headings */
+    h1, h2 {
+      color: var(--primary);
+      margin-bottom: 20px;
+      font-weight: 700;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    h1:after, h2:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 4px;
+      background: linear-gradient(to right, var(--primary), var(--primary-light));
+      border-radius: 2px;
+    }
+
+    /* Filter Buttons */
+    .banner-filters {
+      display: flex;
+      background: white;
+      border-radius: 50px;
+      padding: 5px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 25px;
+    }
+
+    .filter-btn {
+      padding: 8px 20px;
+      border-radius: 50px;
+      margin: 0 2px;
+      background: transparent;
+      color: var(--dark);
+      font-weight: 600;
+      transition: var(--transition);
+      border: none;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      box-shadow: 0 4px 8px rgba(58,123,213,0.2);
+    }
+
+    /* Banner List */
+    .existing-banners ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .existing-banners li {
+      padding: 15px;
+      margin-bottom: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      transition: var(--transition);
+    }
+
+    .existing-banners li:hover {
+      transform: translateX(5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .banner-item {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Banner Preview */
+    .banner-preview {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: var(--transition);
+      flex-shrink: 0;
+      margin-right: 15px;
+      background: #f8f9fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .banner-preview:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+
+    .banner-preview img,
+    .banner-preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .banner-preview:hover img,
+    .banner-preview:hover video {
+      transform: scale(1.1);
+    }
+
+    .media-count {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+      z-index: 10;
+    }
+
+    .no-media-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: #e9ecef;
+      color: #6c757d;
+      font-size: 12px;
+    }
+
+    /* Banner Info */
+    .banner-info {
+      flex: 1;
+    }
+
+    .banner-details {
+      margin-bottom: 8px;
+    }
+
+    .banner-details a {
+      text-decoration: none;
+      color: var(--primary);
+      font-weight: 600;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .banner-details a:hover {
+      color: var(--primary-light);
+      text-decoration: underline;
+    }
+
+    .banner-details small {
+      color: #6c757d;
+      display: block;
+      margin-top: 3px;
+    }
+
+    /* Banner Controls */
+    .banner-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .banner-controls form {
+      display: inline;
+    }
+
+    .banner-controls button {
+      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+
+    .banner-controls button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 14px rgba(255,65,108,0.2);
+    }
+
+    /* Form Styling */
+    form p {
+      margin-bottom: 20px;
+    }
+
+    form label {
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    form input[type="text"],
+    form input[type="file"],
+    form input[type="datetime-local"],
+    form select,
+    form textarea {
+      width: 100%;
+      padding: 10px 15px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: #f8f9fa;
+      transition: var(--transition);
+    }
+
+    form input[type="text"]:focus,
+    form input[type="file"]:focus,
+    form input[type="datetime-local"]:focus,
+    form select:focus,
+    form textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(58,123,213,0.1);
+      background: white;
+      outline: none;
+    }
+
+    form input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    form .inline-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    form button[type="submit"] {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+      margin-top: 10px;
+    }
+
+    form button[type="submit"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 14px rgba(58,123,213,0.2);
+    }
+
+    .time-fields {
+      display: none;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* Messages */
+    .messages {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      width: 300px;
+    }
+
+    .alert {
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+      animation: fadeInDown 0.5s ease;
+    }
+
+    .alert.success {
+      background: linear-gradient(to right, #d4edda, #c3e6cb);
+      color: #155724;
+      border-left: 4px solid #28a745;
+    }
+
+    .alert.error {
+      background: linear-gradient(to right, #f8d7da, #f5c6cb);
+      color: #721c24;
+      border-left: 4px solid #dc3545;
+    }
+
+    .alert.info {
+      background: linear-gradient(to right, #d1ecf1, #bee5eb);
+      color: #0c5460;
+      border-left: 4px solid #17a2b8;
+    }
+
+    .alert.warning {
+      background: linear-gradient(to right, #fff3cd, #ffeeba);
+      color: #856404;
+      border-left: 4px solid #ffc107;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.7;
+      transition: var(--transition);
+    }
+
+    .close-btn:hover {
+      opacity: 1;
+      transform: rotate(90deg);
+    }
+
+    /* Error Messages */
+    .error-message {
+      color: var(--danger);
+      font-size: 13px;
+      margin-top: 5px;
+      display: block;
+      font-weight: 500;
+    }
+
+    /* Modal Styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1050;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.8);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+      background: white;
+      margin: 5% auto;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 800px;
+      position: relative;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      animation: slideInDown 0.4s ease;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      color: var(--danger);
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .modal-close:hover {
+      color: var(--danger-dark);
+      transform: rotate(90deg);
+    }
+
+    /* Media Modal */
+    #mediaModal .modal-content {
+      max-width: 90%;
+      padding: 20px;
+    }
+
+    .add-media-section {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      color: white;
+    }
+
+    #addMediaButton {
+      background: white;
+      color: var(--primary);
+      border: none;
+      padding: 8px 15px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition);
+      margin-top: 10px;
+    }
+
+    #addMediaButton:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
+      padding: 20px 0;
+    }
+
+    .media-item-container {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: var(--transition);
+    }
+
+    .media-item-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+
+    .media-checkbox {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      width: 20px;
+      height: 20px;
+    }
+
+    .media-item {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .media-item:hover {
+      opacity: 0.9;
+    }
+
+    .no-media-message {
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 18px;
+      color: #6c757d;
+    }
+
+    .media-large-view {
+      display: none;
+      text-align: center;
+      width: 100%;
+    }
+
+    #largeMedia {
+      max-width: 100%;
+      max-height: 70vh;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .media-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    #backToGridButton,
+    #deleteMediaButton {
+      padding: 10px 25px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    #backToGridButton {
+      background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+      color: white;
+    }
+
+    #backToGridButton:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(108,117,125,0.2);
+    }
+
+    #deleteMediaButton {
+      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+      color: white;
+    }
+
+    #deleteMediaButton:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(220,53,69,0.2);
+    }
+
+    /* Edit Modal */
+    #editModal .modal-content {
+      max-width: 500px;
+    }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      width: 40px;
+      height: 40px;
+      margin: 20px auto;
+      border: 4px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 992px) {
+      .container {
+        flex-direction: column;
+        height: auto;
+      }
+      
+      .divider {
+        width: 100%;
+        height: 1px;
+        margin: 15px 0;
+        background: linear-gradient(to right, transparent, #ccc, transparent);
+      }
+      
+      .admin-form, .existing-banners {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .navbar {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px;
+      }
+      
+      .nav-links {
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .banner-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .banner-preview {
+        margin-bottom: 15px;
+      }
+      
+      .banner-controls {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+      
+      .banner-filters {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 5px;
+      }
+      
+      .modal-content {
+        margin: 10% auto;
+        width: 95%;
+      }
+      
+      .media-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+    }
+
+    @media (max-width: 576px) {
+      body {
+        padding: 10px;
+      }
+      
+      .admin-form, .existing-banners {
+        padding: 15px;
+      }
+      
+      .media-item {
+        height: 140px;
+      }
+      
+      .media-buttons {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      #backToGridButton,
+      #deleteMediaButton {
+        width: 100%;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideInDown {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-links">
+      <a class="nav-item">
+        <i class="fas fa-user"></i> {{user.username}}
+      </a>
+      <a href="{% url 'banner_slider' username=user.username %}" class="nav-item">
+        <i class="fas fa-play-circle"></i> View Banners
+      </a>
+    </div>
+    <form action="{% url 'logout' %}" method="post">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </form>
+  </nav>
+
+  <!-- Messages -->
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert {{ message.tags }} animate__animated animate__fadeInRight">
+          {{ message }}
+          <button class="close-btn" onclick="this.parentElement.remove();">&times;</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Main Content -->
+  <div class="container animate__animated animate__fadeIn">
+    <!-- Admin Form Section -->
+    <div class="admin-form">
+      <h1>Add Banners</h1>
+      <form method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
+        {% csrf_token %}
+        <p>
+          {{ form.title.label_tag }}
+          {{ form.title }}
+          <span class="error-message" id="titleError"></span>
+        </p>
+        <p>
+          <label for="media_files">Media Files:</label>
+          <input type="file" name="media_files" id="media_files" multiple accept="image/*,video/*" class="form-control">
+          <small class="text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple files</small>
+          <span class="error-message" id="mediaError"></span>
+        </p>
+        <p>
+          {{ form.url.label_tag }}
+          {{ form.url }}
+        </p>
+        <p class="inline-field">
+          {{ form.active }}
+          <label for="{{ form.active.id_for_label }}">Active</label>
+        </p>
+        <p class="inline-field">
+          <input type="checkbox" id="is_scheduled" name="is_scheduled">
+          <label for="is_scheduled">Scheduled</label>
+        </p>
+        
+        <!-- Scheduled Fields -->
+        <div class="time-fields" id="scheduleFields">
+          <p>
+            <label for="{{ form.start_date.id_for_label }}">Start Date:</label>
+            {{ form.start_date }}
+            <span class="error-message" id="startDateError"></span>
+          </p>
+          <p>
+            <label for="{{ form.start_time_input.id_for_label }}">Start Time:</label>
+            {{ form.start_time_input }}
+            <span class="error-message" id="startTimeError"></span>
+          </p>
+          <p>
+            <label for="{{ form.end_date.id_for_label }}">End Date:</label>
+            {{ form.end_date }}
+            <span class="error-message" id="endDateError"></span>
+          </p>
+          <p>
+            <label for="{{ form.end_time_input.id_for_label }}">End Time:</label>
+            {{ form.end_time_input }}
+            <span class="error-message" id="endTimeError"></span>
+          </p>
+        </div>
+        <button type="submit" class="btn-submit">
+          <i class="fas fa-plus-circle"></i> Add
+        </button>
+        <div class="spinner" id="formSpinner"></div>
+      </form>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Existing Banners Section -->
+    <div class="existing-banners">
+      <h2>Existing Banners</h2>
+      <div class="banner-filters">
+        <button type="button" class="filter-btn active" data-filter="all">All Banners</button>
+        <button type="button" class="filter-btn" data-filter="default">Default</button>
+        <button type="button" class="filter-btn" data-filter="scheduled">Scheduled</button>
+      </div>
+      <ul>
+        {% for banner in banners %}
+          <li class="{% if banner.start_time and banner.end_time %}scheduled{% else %}default{% endif %} animate__animated animate__fadeIn">
+            <div class="banner-item">
+              <div class="banner-preview open-modal" data-banner-id="{{ banner.id }}">
+                {% if banner.media_files.all %}
+                  {% with banner.media_files.first as media %}
+                    {% if media.media.url|lower|endswith:".mp4" %}
+                      <video>
+                        <source src="{{ media.media.url }}" type="video/mp4">
+                      </video>
+                    {% else %}
+                      <img src="{{ media.media.url }}" alt="{{ banner.title }}">
+                    {% endif %}
+                    {% if banner.media_files.count > 1 %}
+                      <span class="media-count">+{{ banner.media_files.count|add:"-1" }}</span>
+                    {% endif %}
+                  {% endwith %}
+                {% else %}
+                  <div class="no-media-placeholder">
+                    <i class="fas fa-image"></i>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="banner-info">
+                <div class="banner-details">
+                  <strong>
+                    <a class="edit-banner"
+                      data-id="{{ banner.id }}"
+                      data-title="{{ banner.title }}"
+                      data-start_date="{{banner.start_time|date:'Y-m-d'}}"
+                      data-start_time_input="{{ banner.start_time|time:'h:i A' }}"
+                      data-end_date="{{ banner.end_time|date:'Y-m-d' }}"
+                      data-end_time_input="{{ banner.end_time|time:'h:i A'}}"
+                      data-active="{% if banner.active %}true{% else %}false{% endif %}">
+                      {{ banner.title }}
+                    </a>
+                  </strong>
+                  <small>
+                    {% if banner.start_time and banner.end_time %}
+                      <i class="far fa-calendar-alt"></i> {{ banner.start_time|date:"M d, Y h:i A" }} - {{ banner.end_time|date:"M d, Y h:i A" }}
+                    {% else %}
+                      <i class="fas fa-infinity"></i> Always active
+                    {% endif %}
+                  </small>
+                </div>
+                <div class="banner-controls">
+                  <form method="post" action="{% url 'update_banner_active' banner.id user.username %}">
+                    {% csrf_token %}
+                    <div class="custom-control custom-switch">
+                      <input type="checkbox" class="custom-control-input" name="active" id="active_{{ banner.id }}" {% if banner.active %}checked{% endif %} onchange="this.form.submit()">
+                      <label class="custom-control-label" for="active_{{ banner.id }}">Active</label>
+                    </div>
+                  </form>
+                  <form method="post" action="{% url 'delete_banner' banner.id user.username %}" onsubmit="return confirm('Are you sure you want to delete this banner?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-delete">
+                      <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Media Modal -->
+  <div id="mediaModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <div class="add-media-section">
+        <h3>Manage Banner Media</h3>
+        <div class="form-group">
+          <label>Add new files:</label>
+          <input type="file" id="newMediaFiles" name="newMediaFiles" multiple accept="image/*,video/*" class="form-control">
+        </div>
+        <button id="addMediaButton" class="btn-add-media">
+          <i class="fas fa-plus"></i> Add Media
+        </button>
+      </div>
+      <div class="media-actions">
+        <button id="deleteSelectedMedia" class="btn-delete-selected">
+          <i class="fas fa-trash"></i> Delete Selected
+        </button>
+      </div>
+      <div class="media-grid"></div>
+      <div class="no-media-message">
+        <i class="far fa-folder-open fa-3x"></i>
+        <p>No media files available</p>
+      </div>
+      <div class="media-large-view">
+        <div id="largeMediaContainer"></div>
+        <div class="media-buttons">
+          <button id="backToGridButton" class="btn-back">
+            <i class="fas fa-grid"></i> Back to Grid
+          </button>
+          <button id="deleteMediaButton" class="btn-delete-media">
+            <i class="fas fa-trash"></i> Delete Media
+          </button>
+        </div>
+      </div>
+      <div class="spinner" id="mediaSpinner"></div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Edit Banner</h2>
+      <form id="editBannerForm" method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="banner_id" id="edit_banner_id">
+        <div class="form-group">
+          <label for="edit_title">Title:</label>
+          <input type="text" name="title" id="edit_title" class="form-control">
+        </div>
+        <div class="form-group form-check">
+          <input type="checkbox" name="active" id="edit_active" class="form-check-input">
+          <label for="edit_active" class="form-check-label">Active</label>
+        </div>
+        <div class="form-group">
+          <label for="edit_start_date">Start Date:</label>
+          <input type="date" name="start_date" id="edit_start_date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="edit_start_time">Start Time:</label>
+          <input type="text" name="start_time_input" id="edit_start_time" class="form-control timepicker">
+        </div>
+        <div class="form-group">
+          <label for="edit_end_date">End Date:</label>
+          <input type="date" name="end_date" id="edit_end_date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="edit_end_time">End Time:</label>
+          <input type="text" name="end_time_input" id="edit_end_time" class="form-control timepicker">
+        </div>
+        <button type="submit" class="btn-save">
+          <i class="fas fa-save"></i> Save Changes
+        </button>
+        <div class="spinner" id="editSpinner"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+  <script>
+    $(document).ready(function(){
+      // Initialize time pickers
+      $('.timepicker').timepicker({
+        timeFormat: 'h:mm p',
+        interval: 15,
+        dynamic: false,
+        dropdown: true,
+        scrollbar: true
+      });
+
+      // Toggle schedule fields
+      $('#is_scheduled').change(function(){
+        $('#scheduleFields').slideToggle('fast');
+      }).trigger('change');
+
+      // Filter banners
+      $('.filter-btn').click(function(){
+        $('.filter-btn').removeClass('active');
+        $(this).addClass('active');
+        const filter = $(this).data('filter');
+        
+        $('.existing-banners ul li').hide().removeClass('animate__fadeIn');
+        if(filter === 'all') {
+          $('.existing-banners ul li').show().addClass('animate__fadeIn');
+        } else {
+          $(`.existing-banners ul li.${filter}`).show().addClass('animate__fadeIn');
+        }
+      });
+
+      // Media Modal
+      let currentMediaId = null;
+      let currentBannerId = null;
+
+      $('.banner-preview').click(function(){
+        currentBannerId = $(this).data('banner-id');
+        $('#mediaSpinner').show();
+        $('.media-grid').html('');
+        
+        $.ajax({
+          url: `/get-media-files/${currentBannerId}/`,
+          type: 'GET',
+          success: function(response) {
+            if(response.media_files.length > 0) {
+              response.media_files.forEach(media => {
+                const mediaItem = `
+                  <div class="media-item-container">
+                    <input type="checkbox" class="media-checkbox" data-media-id="${media.id}">
+                    ${media.type === 'video' ? 
+                      `<video class="media-item" data-media-id="${media.id}" data-media-url="${media.url}">
+                        <source src="${media.url}" type="video/mp4">
+                      </video>` : 
+                      `<img class="media-item" data-media-id="${media.id}" data-media-url="${media.url}" src="${media.url}" alt="Media">`
+                    }
+                  </div>
+                `;
+                $('.media-grid').append(mediaItem);
+              });
+              $('.no-media-message').hide();
+            } else {
+              $('.no-media-message').show();
+            }
+            $('#mediaModal').fadeIn();
+            $('#mediaSpinner').hide();
+          },
+          error: function(xhr) {
+            alert('Error loading media: ' + xhr.responseText);
+            $('#mediaSpinner').hide();
+          }
+        });
+      });
+
+      // Add media
+      $('#addMediaButton').click(function(){
+        if(!currentBannerId) {
+          alert('Please select a banner first');
+          return;
+        }
+
+        const files = $('#newMediaFiles')[0].files;
+        if(files.length === 0) {
+          alert('Please select at least one file');
+          return;
+        }
+
+        const formData = new FormData();
+        for(let i = 0; i < files.length; i++) {
+          formData.append('media_files', files[i]);
+        }
+
+        $('#mediaSpinner').show();
+        
+        $.ajax({
+          url: `/add-media/${currentBannerId}/`,
+          type: 'POST',
+          data: formData,
+          processData: false,
+          contentType: false,
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          success: function() {
+            location.reload();
+          },
+          error: function(xhr) {
+            alert('Error uploading media: ' + xhr.responseText);
+            $('#mediaSpinner').hide();
+          }
+        });
+      });
+
+      // View media in large mode
+      $(document).on('click', '.media-item', function(){
+        currentMediaId = $(this).data('media-id');
+        const mediaUrl = $(this).data('media-url');
+        
+        if(mediaUrl.endsWith('.mp4')) {
+          $('#largeMediaContainer').html(`
+            <video controls autoplay>
+              <source src="${mediaUrl}" type="video/mp4">
+            </video>
+          `);
+        } else {
+          $('#largeMediaContainer').html(`<img src="${mediaUrl}" alt="Media Preview">`);
+        }
+        
+        $('.media-grid').hide();
+        $('.media-large-view').show();
+      });
+
+      // Back to grid view
+      $('#backToGridButton').click(function(){
+        $('.media-large-view').hide();
+        $('.media-grid').show();
+      });
+
+      // Delete single media
+      $('#deleteMediaButton').click(function(){
+        if(!currentMediaId) {
+          alert('No media selected');
+          return;
+        }
+
+        if(confirm('Are you sure you want to delete this media?')) {
+          $('#mediaSpinner').show();
+          
+          $.ajax({
+            url: `/delete-media/${currentMediaId}/`,
+            type: 'DELETE',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function() {
+              location.reload();
+            },
+            error: function(xhr) {
+              alert('Error deleting media: ' + xhr.responseText);
+              $('#mediaSpinner').hide();
+            }
+          });
+        }
+      });
+
+      // Delete selected media
+      $('#deleteSelectedMedia').click(function(){
+        const selected = [];
+        $('.media-checkbox:checked').each(function(){
+          selected.push($(this).data('media-id'));
+        });
+
+        if(selected.length === 0) {
+          alert('Please select at least one media file');
+          return;
+        }
+
+        if(confirm(`Are you sure you want to delete ${selected.length} selected media files?`)) {
+          $('#mediaSpinner').show();
+          
+          $.ajax({
+            url: `/delete-selected-media/`,
+            type: 'DELETE',
+            data: JSON.stringify({ media_ids: selected }),
+            contentType: 'application/json',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function() {
+              location.reload();
+            },
+            error: function(xhr) {
+              alert('Error deleting media: ' + xhr.responseText);
+              $('#mediaSpinner').hide();
+            }
+          });
+        }
+      });
+
+      // Edit banner modal
+      $('.edit-banner').click(function(e){
+        e.preventDefault();
+        
+        const bannerId = $(this).data('id');
+        const title = $(this).data('title');
+        const startDate = $(this).data('start_date') || '';
+        const startTime = $(this).data('start_time_input') || '';
+        const endDate = $(this).data('end_date') || '';
+        const endTime = $(this).data('end_time_input') || '';
+        const isActive = $(this).data('active') === 'true';
+
+        $('#edit_banner_id').val(bannerId);
+        $('#edit_title').val(title);
+        $('#edit_start_date').val(startDate);
+        $('#edit_start_time').val(startTime);
+        $('#edit_end_date').val(endDate);
+        $('#edit_end_time').val(endTime);
+        $('#edit_active').prop('checked', isActive);
+
+        const editUrl = "{% url 'edit_banner' 0 %}".replace('0', bannerId);
+        $('#editBannerForm').attr('action', editUrl);
+        
+        $('#editModal').fadeIn();
+      });
+
+      // Submit edit form
+      $('#editBannerForm').submit(function(e){
+        e.preventDefault();
+        $('#editSpinner').show();
+        
+        const formData = $(this).serialize();
+        const actionUrl = $(this).attr('action');
+        
+        $.ajax({
+          url: actionUrl,
+          type: 'POST',
+          data: formData,
+          success: function(response) {
+            location.reload();
+          },
+          error: function(xhr) {
+            alert('Error updating banner: ' + xhr.responseText);
+            $('#editSpinner').hide();
+          }
+        });
+      });
+
+      // Close modals
+      $('.modal-close, .modal').click(function(e){
+        if($(e.target).hasClass('modal-close') || $(e.target).hasClass('modal')) {
+          $(this).closest('.modal').fadeOut();
+          $('.media-large-view').hide();
+          $('.media-grid').show();
+        }
+      });
+
+      // Auto-hide messages after 5 seconds
+      setTimeout(function(){
+        $('.alert').fadeOut('slow', function(){
+          $(this).remove();
+        });
+      }, 5000);
+    });
+
+    // Form validation
+    function validateForm() {
+      let isValid = true;
+      
+      // Reset errors
+      $('.error-message').text('');
+      
+      // Validate title
+      if($('#id_title').val().trim() === '') {
+        $('#titleError').text('Title is required');
+        isValid = false;
+      }
+      
+      // Validate media files
+      if($('#media_files')[0].files.length === 0) {
+        $('#mediaError').text('At least one media file is required');
+        isValid = false;
+      }
+      
+      // Validate schedule if checked
+      if($('#is_scheduled').is(':checked')) {
+        if($('#id_start_date').val() === '') {
+          $('#startDateError').text('Start date is required');
+          isValid = false;
+        }
+        
+        if($('#id_start_time_input').val() === '') {
+          $('#startTimeError').text('Start time is required');
+          isValid = false;
+        }
+        
+        if($('#id_end_date').val() === '') {
+          $('#endDateError').text('End date is required');
+          isValid = false;
+        }
+        
+        if($('#id_end_time_input').val() === '') {
+          $('#endTimeError').text('End time is required');
+          isValid = false;
+        }
+        
+        // Validate date range
+        if(isValid) {
+          const startDateTime = new Date($('#id_start_date').val() + 'T' + $('#id_start_time_input').val());
+          const endDateTime = new Date($('#id_end_date').val() + 'T' + $('#id_end_time_input').val());
+          
+          if(endDateTime <= startDateTime) {
+            $('#endTimeError').text('End time must be after start time');
+            isValid = false;
+          }
+        }
+      }
+      
+      if(isValid) {
+        $('#formSpinner').show();
+      }
+      
+      return isValid;
+    }
+  </script>
+</body>
+</html>

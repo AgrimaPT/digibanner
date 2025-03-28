@@ -22,26 +22,26 @@
     <!-- Carousel Indicators -->
     <ol id="carousel-indicators" class="carousel-indicators">
       {% for banner in banners %}
-        <li data-target="#bannerCarousel" data-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}"></li>
+        {% for media in banner.media_files.all %}
+          <li data-target="#bannerCarousel" data-slide-to="{{ forloop.parentloop.counter0 }}-{{ forloop.counter0 }}" class="{% if forloop.parentloop.first and forloop.first %}active{% endif %}"></li>
+        {% endfor %}
       {% endfor %}
     </ol>
     <!-- Carousel Items -->
     <div id="carousel-inner" class="carousel-inner">
       {% for banner in banners %}
-        <div class="carousel-item {% if forloop.first %}active{% endif %}">
-          {% if banner.media %}
-            {% if banner.media.url|lower|endswith:".mp4" %}
+        {% for media in banner.media_files.all %}
+          <div class="carousel-item {% if forloop.parentloop.first and forloop.first %}active{% endif %}">
+            {% if media.media.url|lower|endswith:".mp4" %}
               <video width="100%" controls autoplay muted>
-                <source src="{{ banner.media.url }}" type="video/mp4">
+                <source src="{{ media.media.url }}" type="video/mp4">
                 Your browser does not support the video tag.
               </video>
             {% else %}
-              <img src="{{ banner.media.url }}" alt="{{ banner.title }}" class="d-block w-100">
+              <img src="{{ media.media.url }}" alt="{{ banner.title }}" class="d-block w-100">
             {% endif %}
-          {% else %}
-            <p>{{ banner.title }}</p>
-          {% endif %}
-        </div>
+          </div>
+        {% endfor %}
       {% endfor %}
     </div>
     <!-- Carousel Controls -->
@@ -60,108 +60,225 @@
 
   <!-- AJAX Script to Update Carousel and Video Handling -->
   <script>
-    // Track current banner IDs
-    var currentBannerIds = [];
-
-    // Function to rebuild carousel HTML based on banner data
-    function updateCarousel(banners) {
-      var newBannerIds = banners.map(function(banner) { return banner.id; });
-      if (JSON.stringify(newBannerIds) === JSON.stringify(currentBannerIds)) {
-        console.log('No change in banners. Skipping update.');
-        return;
-      }
-      currentBannerIds = newBannerIds;
-      
-      var indicators = '';
-      var items = '';
-
-      $.each(banners, function(index, banner) {
-        var activeClass = (index === 0) ? 'active' : '';
-        indicators += '<li data-target="#bannerCarousel" data-slide-to="' + index + '" class="' + activeClass + '"></li>';
-
-        var mediaUrl = banner.media_url;
-        console.log("Banner ID " + banner.id + " mediaUrl:", mediaUrl);
-        var mediaTag = '';
-
-        if (mediaUrl) {
-          if (mediaUrl.toLowerCase().endsWith('.mp4')) {
-            // Add muted for autoplay to work in most browsers
-            mediaTag = '<video width="100%" controls autoplay muted>' +
-                         '<source src="' + mediaUrl + '" type="video/mp4">' +
-                         'Your browser does not support the video tag.' +
-                       '</video>';
-          } else {
-            mediaTag = '<img src="' + mediaUrl + '" class="d-block w-100" alt="' + banner.title + '">';
-          }
-        } else {
-          mediaTag = '<p>' + banner.title + '</p>';
-        }
-
-        if (banner.url && banner.url !== "undefined") {
-          mediaTag = '<a href="' + banner.url + '">' + mediaTag + '</a>';
-        }
-
-        items += '<div class="carousel-item ' + activeClass + '">' + mediaTag + '</div>';
-      });
-
-      $('#carousel-indicators').html(indicators);
-      $('#carousel-inner').html(items);
-
-      $('#bannerCarousel').carousel('dispose');
-      $('#bannerCarousel').carousel({
-        interval: 5000,
-        pause: false
-      });
-      $('#bannerCarousel').carousel('cycle');
-    }
-
-    // Function to fetch banner data from the server
-    function fetchBannerData() {
-      $.ajax({
-        url: '/banner_data/',
-        type: 'GET',
-        dataType: 'json',
-        success: function(data) {
-          if (data && data.banners) {
-            updateCarousel(data.banners);
-          }
-        },
-        error: function(xhr, status, error) {
-          console.error("Error fetching banners: " + error);
-        }
-      });
-    }
-
-    // Poll for updates every 3 seconds
-    setInterval(fetchBannerData, 3000);
-
     $(document).ready(function() {
-      fetchBannerData();
+    // Configuration
+    const config = {
+        pollInterval: 3000,       // AJAX polling interval (ms)
+        imageInterval: 5000,      // Carousel interval for images (ms)
+        videoInterval: false,     // Disabled for videos (manual control)
+        debug: true              // Enable console logging
+    };
 
-      // When slide transition is complete, check for video in the active slide.
-      $('#bannerCarousel').on('slid.bs.carousel', function () {
-        var activeSlide = $(this).find('.carousel-item.active');
-        var video = activeSlide.find('video');
-        if (video.length > 0) {
-          console.log("Video detected in active slide. Pausing carousel.");
-          // Pause carousel
-          $('#bannerCarousel').carousel('pause');
-          // Ensure the video plays (if not already playing)
-          var vidElement = video[0];
-          if (vidElement.paused) {
-            vidElement.play();
-          }
-          // When video ends, resume carousel and go to next slide.
-          video.off('ended').on('ended', function() {
-            console.log("Video ended. Moving to next slide.");
-            $('#bannerCarousel').carousel('cycle');
-            $('#bannerCarousel').carousel('next');
-          });
-        } else {
-          console.log("No video in active slide. Carousel running normally.");
+    // State management
+    const state = {
+        currentBannerIds: [],
+        isVideoPlaying: false,
+        currentVideo: null,
+        pollingInterval: null,
+        carouselInitialized: false
+    };
+
+    // DOM Elements
+    const elements = {
+        carousel: $('#bannerCarousel'),
+        indicators: $('#carousel-indicators'),
+        inner: $('#carousel-inner'),
+        controls: $('.carousel-control-prev, .carousel-control-next')
+    };
+
+    // Core Functions
+    function log(message) {
+        if (config.debug) console.log(`[BannerCarousel] ${message}`);
+    }
+
+    function initializeCarousel() {
+        if (state.carouselInitialized) {
+            elements.carousel.carousel('dispose');
         }
-      });
+        
+        elements.carousel.carousel({
+            interval: config.imageInterval,
+            pause: false,
+            ride: 'carousel'
+        });
+        
+        state.carouselInitialized = true;
+        log("Carousel initialized");
+    }
+
+    function updateCarousel(banners) {
+        const newBannerIds = banners.map(banner => banner.id);
+        
+        // Skip update if no changes
+        if (JSON.stringify(newBannerIds) === JSON.stringify(state.currentBannerIds)) {
+            log('No banner changes detected');
+            return;
+        }
+
+        state.currentBannerIds = newBannerIds;
+        
+         
+    // Clear existing content first
+    elements.indicators.empty();
+    elements.inner.empty();
+    
+    // Handle empty banners case
+    if (!banners || banners.length === 0) {
+        log("No banners available - showing fallback");
+        elements.inner.html(`
+            <div class="carousel-item active text-center p-5 bg-light">
+                <h3 class="text-muted">No banners available</h3>
+                <p class="text-muted">Please check back later.</p>
+            </div>
+        `);
+        elements.controls.hide();
+        elements.carousel.carousel('dispose'); // Stop any existing carousel animation
+        return;
+    }
+
+        // Build new carousel items
+        let indicators = '';
+        let items = '';
+        let slideIndex = 0;
+
+        banners.forEach((banner, bannerIndex) => {
+            banner.media_urls.forEach((mediaUrl, mediaIndex) => {
+                const isActive = (bannerIndex === 0 && mediaIndex === 0);
+                indicators += `<li data-target="#bannerCarousel" data-slide-to="${slideIndex}" class="${isActive ? 'active' : ''}"></li>`;
+                
+                const isVideo = mediaUrl.toLowerCase().endsWith('.mp4');
+                let mediaContent = '';
+
+                if (isVideo) {
+                    mediaContent = `
+                        <video width="100%" muted playsinline webkit-playsinline preload="auto">
+                            <source src="${mediaUrl}" type="video/mp4">
+                            Your browser doesn't support HTML5 video.
+                        </video>
+                    `;
+                } else {
+                    mediaContent = `<img src="${mediaUrl}" class="d-block w-100" alt="${banner.title || 'Banner image'}">`;
+                }
+
+                if (banner.url && banner.url !== "undefined") {
+                    mediaContent = `<a href="${banner.url}">${mediaContent}</a>`;
+                }
+
+                items += `<div class="carousel-item ${isActive ? 'active' : ''}">${mediaContent}</div>`;
+                slideIndex++;
+            });
+        });
+
+        // Update DOM
+        elements.indicators.html(indicators);
+        elements.inner.html(items);
+        elements.controls.show();
+        
+        // Reinitialize carousel
+        initializeCarousel();
+        
+        // Set up video handlers for initial active slide
+        setupVideoHandlers();
+    }
+
+    function setupVideoHandlers() {
+        const activeSlide = $('.carousel-item.active');
+        const video = activeSlide.find('video')[0];
+        
+        if (video) {
+            state.currentVideo = video;
+            
+            $(video).off('ended play').on({
+                'ended': handleVideoEnd,
+                'play': handleVideoPlay
+            });
+            
+            // Attempt autoplay
+            const playPromise = video.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    log("Autoplay prevented - showing controls");
+                    video.controls = true;
+                });
+            }
+        } else {
+            state.currentVideo = null;
+        }
+    }
+
+    function handleVideoPlay() {
+        log("Video started playing");
+        state.isVideoPlaying = true;
+        elements.carousel.carousel('pause');
+    }
+
+    function handleVideoEnd() {
+        log("Video ended - advancing to next slide");
+        state.isVideoPlaying = false;
+        state.currentVideo = null;
+        elements.carousel.carousel('next');
+    }
+
+    function fetchBannerData() {
+        $.ajax({
+            url: '/banner_data/{{ user.username }}/',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                if (data && data.banners) {
+                    updateCarousel(data.banners);
+                } else {
+                    log("No banners received - updating with empty array");
+                    updateCarousel([]);
+                }
+            },
+            error: function(xhr, status, error) {
+                log(`Error fetching banners: ${error}`);
+            }
+        });
+    }
+
+    // Event Handlers
+    elements.carousel.on('slide.bs.carousel', function(event) {
+        const nextSlide = $(event.relatedTarget);
+        const video = nextSlide.find('video')[0];
+        
+        if (video) {
+            log("Video slide detected - preparing to pause carousel");
+            state.currentVideo = video;
+            
+            $(video).off('ended play').on({
+                'ended': handleVideoEnd,
+                'play': handleVideoPlay
+            });
+        }
     });
-  </script>
+
+    elements.carousel.on('slid.bs.carousel', function() {
+        if (!state.isVideoPlaying) {
+            log("Non-video slide active - resuming normal cycling");
+            elements.carousel.carousel({
+                interval: config.imageInterval,
+                pause: false
+            });
+        }
+        setupVideoHandlers();
+    });
+
+    // Initialization
+    fetchBannerData();
+    state.pollingInterval = setInterval(fetchBannerData, config.pollInterval);
+
+    // Cleanup on page unload
+    $(window).on('beforeunload', function() {
+        clearInterval(state.pollingInterval);
+        if (state.currentVideo) {
+            $(state.currentVideo).off('ended play');
+        }
+    });
+});
+    </script>
+    
 </body>
 </html>
